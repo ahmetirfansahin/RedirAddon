@@ -81,6 +81,26 @@
     return extensionId && name ? `${extensionId}:${normalizeText(name)}` : null;
   }
 
+  function reloadExtensionPageOnce() {
+    const extensionId = getExtensionIdFromUrl();
+    const storageKey = 'rediraddon:reloaded-extension';
+    try {
+      if (!extensionId) {
+        sessionStorage.removeItem(storageKey);
+        return false;
+      }
+
+      if (sessionStorage.getItem(storageKey) === extensionId) return false;
+
+      sessionStorage.setItem(storageKey, extensionId);
+      window.location.reload();
+      return true;
+    } catch (error) {
+      console.warn('[RedirAddon] Could not prepare the one-time page reload:', error);
+      return false;
+    }
+  }
+
   /**
    * Removes marketing taglines and separators from a title to find its base name.
    * Example: "Dark Reader - dark mode for every website" -> "Dark Reader".
@@ -318,10 +338,13 @@
 
   // Page load and SPA navigation listener.
   function initObserver() {
+    if (reloadExtensionPageOnce()) return;
+
     let debounceTimer = null;
     const observer = new MutationObserver(() => {
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
+        if (reloadExtensionPageOnce()) return;
         processPage();
       }, 250);
     });
@@ -333,6 +356,7 @@
     });
 
     setInterval(() => {
+      if (reloadExtensionPageOnce()) return;
       const searchKey = getCurrentSearchKey();
       if (getExtensionIdFromUrl() &&
           (!searchKey || searchKey !== currentSearchKey || !document.getElementById('rediraddon-container'))) {
