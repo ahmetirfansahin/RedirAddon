@@ -15,6 +15,7 @@
    - Cleans up the previous state during SPA navigation before searching for the next extension.
 3. **Handles CORS and CSP restrictions**
    - **Browser extension (Manifest V3):** Sends requests through `background.js` to avoid page-level CSP restrictions and uses an in-memory cache with a 15-minute lifetime.
+   - Sends the canonical extension name to AMO to search for a matching listing; this is declared as browsing activity in the Firefox data collection settings.
 4. **Polished, adaptive interface**
    - Pill-button design that complements the Chrome Web Store's Material 3 styling.
    - Firefox-inspired colors, subtle animations (including a loading spinner and hover effects), and dark mode support.

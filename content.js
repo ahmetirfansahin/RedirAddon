@@ -13,27 +13,6 @@
   let pendingReloadId = null;
   let pendingReloadTimer = null;
 
-  // Firefox brand SVG icon.
-  const FIREFOX_SVG = `
-    <svg class="rediraddon-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-1.85.63-3.55 1.69-4.9.44.75 1.05 1.5 1.83 2.15.54.45 1.25.9 2.05 1.25-.3-.72-.47-1.5-.47-2.3 0-1.28.45-2.45 1.2-3.37.1.33.25.68.45 1.02.6 1.05 1.45 1.88 2.45 2.45.18.1.35.18.53.25-.25-.65-.38-1.35-.38-2.07 0-1.45.52-2.78 1.4-3.82 2.76 1.4 4.75 4.14 4.75 7.34 0 4.41-3.59 8-8 8z" fill="currentColor"/>
-    </svg>
-  `;
-
-  // Spinning loading indicator icon.
-  const SPINNER_SVG = `
-    <svg class="rediraddon-spinner" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-      <line x1="12" y1="2" x2="12" y2="6"></line>
-      <line x1="12" y1="18" x2="12" y2="22"></line>
-      <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
-      <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
-      <line x1="2" y1="12" x2="6" y2="12"></line>
-      <line x1="18" y1="12" x2="22" y2="12"></line>
-      <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
-      <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
-    </svg>
-  `;
-
   /**
    * Extracts the Chrome Web Store extension ID from the URL.
    * Format: /detail/[slug]/[id] or /detail/[id] (32 alphanumeric characters).
@@ -237,6 +216,59 @@
     return container;
   }
 
+  function createFirefoxIcon() {
+    const namespace = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(namespace, 'svg');
+    svg.setAttribute('class', 'rediraddon-icon');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('width', '18');
+    svg.setAttribute('height', '18');
+    svg.setAttribute('fill', 'none');
+
+    const path = document.createElementNS(namespace, 'path');
+    path.setAttribute(
+      'd',
+      'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-1.85.63-3.55 1.69-4.9.44.75 1.05 1.5 1.83 2.15.54.45 1.25.9 2.05 1.25-.3-.72-.47-1.5-.47-2.3 0-1.28.45-2.45 1.2-3.37.1.33.25.68.45 1.02.6 1.05 1.45 1.88 2.45 2.45.18.1.35.18.53.25-.25-.65-.38-1.35-.38-2.07 0-1.45.52-2.78 1.4-3.82 2.76 1.4 4.75 4.14 4.75 7.34 0 4.41-3.59 8-8 8z'
+    );
+    path.setAttribute('fill', 'currentColor');
+    svg.appendChild(path);
+    return svg;
+  }
+
+  function createSpinnerIcon() {
+    const namespace = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(namespace, 'svg');
+    svg.setAttribute('class', 'rediraddon-spinner');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('width', '18');
+    svg.setAttribute('height', '18');
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('stroke-width', '2.5');
+    svg.setAttribute('stroke-linecap', 'round');
+    svg.setAttribute('stroke-linejoin', 'round');
+
+    [
+      [12, 2, 12, 6],
+      [12, 18, 12, 22],
+      [4.93, 4.93, 7.76, 7.76],
+      [16.24, 16.24, 19.07, 19.07],
+      [2, 12, 6, 12],
+      [18, 12, 22, 12],
+      [4.93, 19.07, 7.76, 16.24],
+      [16.24, 7.76, 19.07, 4.93]
+    ].forEach(([x1, y1, x2, y2]) => {
+      const line = document.createElementNS(namespace, 'line');
+      line.setAttribute('x1', x1);
+      line.setAttribute('y1', y1);
+      line.setAttribute('x2', x2);
+      line.setAttribute('y2', y2);
+      svg.appendChild(line);
+    });
+
+    return svg;
+  }
+
   /**
    * Renders the button in the DOM with the specified state.
    */
@@ -247,35 +279,37 @@
     const container = createOrGetContainer();
     
     // Build the button template.
-    let btnHtml = '';
     let btnClass = 'rediraddon-btn';
     let btnTitle = '';
+    let btnText = '';
+    let iconType = 'firefox';
     let onClick = null;
 
     switch (state) {
       case 'loading':
         btnClass += ' rediraddon-btn--loading';
-        btnHtml = `${SPINNER_SVG} <span>Searching Firefox...</span>`;
+        btnText = 'Searching Firefox...';
+        iconType = 'spinner';
         btnTitle = 'Searching Mozilla Add-ons...';
         break;
 
       case 'found':
         btnClass += ' rediraddon-btn--found';
-        btnHtml = `${FIREFOX_SVG} <span>Find on Firefox ↗</span>`;
+        btnText = 'Find on Firefox ↗';
         btnTitle = `Firefox Add-ons: "${options.addonName}"\nUsers: ${options.users || 'Unknown'} | Rating: ${options.rating ? options.rating.toFixed(1) + ' ★' : '-'}\nClick to open the Firefox listing.`;
         onClick = () => window.open(options.url, '_blank', 'noopener,noreferrer');
         break;
 
       case 'not_found':
         btnClass += ' rediraddon-btn--not-found';
-        btnHtml = `${FIREFOX_SVG} <span>Not found on Firefox</span>`;
+        btnText = 'Not found on Firefox';
         btnTitle = 'No exact match was found on Firefox Add-ons. Click to search the store manually.';
         onClick = () => window.open(options.searchFallbackUrl, '_blank', 'noopener,noreferrer');
         break;
 
       case 'error':
         btnClass += ' rediraddon-btn--error';
-        btnHtml = `${FIREFOX_SVG} <span>Search failed (Retry)</span>`;
+        btnText = 'Search failed (Retry)';
         btnTitle = options.error || 'A connection error occurred. Click to try again.';
         onClick = () => {
           container.remove();
@@ -284,9 +318,17 @@
         break;
     }
 
-    container.innerHTML = `<button type="button" class="${btnClass}" title="${btnTitle.replace(/"/g, '&quot;')}">${btnHtml}</button>`;
-    
-    const btnElement = container.querySelector('button');
+    const btnElement = document.createElement('button');
+    btnElement.type = 'button';
+    btnElement.className = btnClass;
+    btnElement.title = btnTitle;
+    btnElement.appendChild(iconType === 'spinner' ? createSpinnerIcon() : createFirefoxIcon());
+
+    const label = document.createElement('span');
+    label.textContent = btnText;
+    btnElement.appendChild(label);
+    container.replaceChildren(btnElement);
+
     if (onClick) {
       btnElement.addEventListener('click', onClick);
     }
