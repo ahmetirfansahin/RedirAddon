@@ -14,14 +14,13 @@
    - Cleans up the previous state during SPA navigation before searching for the next extension.
 3. **Handles CORS and CSP restrictions**
    - **Browser extension (Manifest V3):** Sends requests through `background.js` to avoid page-level CSP restrictions and uses an in-memory cache with a 15-minute lifetime.
-   - **Userscript:** Supports `GM_xmlhttpRequest` with the `@connect addons.mozilla.org` permission.
 4. **Polished, adaptive interface**
    - Pill-button design that complements the Chrome Web Store's Material 3 styling.
    - Firefox-inspired colors, subtle animations (including a loading spinner and hover effects), and dark mode support.
 
 ---
 
-## 📁 Project structure (Format B)
+## 📁 Project structure
 
 ```text
 RedirAddon/
@@ -31,7 +30,6 @@ RedirAddon/
 ├── styles.css            # Button and status styles, including dark mode
 ├── popup.html            # Extension toolbar popup
 ├── popup.css             # Popup styles
-├── RedirAddon.user.js    # Format A: Tampermonkey userscript
 ├── icons/                # Extension icons in 16x16, 48x48, and 128x128 sizes
 └── README.md             # Documentation and installation instructions
 ```
@@ -40,13 +38,7 @@ RedirAddon/
 
 ## 🛠️ Installation
 
-### Format A: Tampermonkey / Violentmonkey (userscript)
-1. Install [Tampermonkey](https://www.tampermonkey.net/) or [Violentmonkey](https://violentmonkey.github.io/) in your browser.
-2. Open the userscript manager and choose **Create a new script**.
-3. Copy the contents of `RedirAddon.user.js` into the editor and save with **Ctrl+S**.
-4. Visit a Chrome Web Store extension page (for example, `https://chromewebstore.google.com/detail/ublock-origin/cjpalhdlnbpafiamejdnhcphjbkeiagm`). The button will appear automatically.
-
-### Format B: Firefox-based browser extension (Manifest V3)
+### Firefox-based browser extension (Manifest V3)
 1. In Firefox, open `about:debugging#/runtime/this-firefox`.
 2. Select **This Firefox**.
 3. Click **Load Temporary Add-on...**.
