@@ -1,0 +1,141 @@
+/* RedirAddon - Chrome Web Store UI Stilleri */
+
+.rediraddon-wrapper {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 10px;
+  margin-right: 10px;
+  vertical-align: middle;
+  font-family: 'Google Sans', Roboto, Arial, sans-serif;
+  z-index: 100;
+}
+
+.rediraddon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 20px;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.25px;
+  cursor: pointer;
+  user-select: none;
+  text-decoration: none;
+  white-space: nowrap;
+  box-sizing: border-box;
+  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  animation: rediraddon-fadein 0.3s cubic-bezier(0, 0, 0.2, 1);
+}
+
+/* 1. Yükleniyor Durumu */
+.rediraddon-btn--loading {
+  background: #f1f3f4;
+  color: #5f6368;
+  border-color: #dadce0;
+  cursor: wait;
+}
+
+/* 2. Bulundu Durumu (Firefox Marka Gradyanı) */
+.rediraddon-btn--found {
+  background: linear-gradient(135deg, #ff7139 0%, #ff3b00 50%, #9013fe 100%);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(255, 59, 0, 0.35);
+}
+
+.rediraddon-btn--found:hover {
+  transform: translateY(-1.5px);
+  box-shadow: 0 4px 14px rgba(255, 59, 0, 0.45);
+  background: linear-gradient(135deg, #ff824f 0%, #ff4b15 50%, #9e2cfb 100%);
+}
+
+.rediraddon-btn--found:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 5px rgba(255, 59, 0, 0.3);
+}
+
+/* 3. Bulunamadı Durumu */
+.rediraddon-btn--not-found {
+  background: #f8f9fa;
+  color: #70757a;
+  border-color: #dadce0;
+  box-shadow: none;
+}
+
+.rediraddon-btn--not-found:hover {
+  background: #f1f3f4;
+  color: #3c4043;
+  border-color: #bdc1c6;
+}
+
+/* 4. Hata Durumu */
+.rediraddon-btn--error {
+  background: #fce8e6;
+  color: #c5221f;
+  border-color: #fad2cf;
+}
+
+.rediraddon-btn--error:hover {
+  background: #fad2cf;
+}
+
+/* İkonlar ve Animasyonlar */
+.rediraddon-icon {
+  flex-shrink: 0;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.rediraddon-spinner {
+  flex-shrink: 0;
+  animation: rediraddon-spin 1s linear infinite;
+}
+
+@keyframes rediraddon-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes rediraddon-fadein {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Koyu Tema (Dark Mode) Desteği */
+@media (prefers-color-scheme: dark) {
+  .rediraddon-btn--loading {
+    background: #303134;
+    color: #bdc1c6;
+    border-color: #5f6368;
+  }
+
+  .rediraddon-btn--not-found {
+    background: #202124;
+    color: #9aa0a6;
+    border-color: #3c4043;
+  }
+
+  .rediraddon-btn--not-found:hover {
+    background: #303134;
+    color: #e8eaed;
+    border-color: #5f6368;
+  }
+
+  .rediraddon-btn--error {
+    background: #3c2626;
+    color: #f28b82;
+    border-color: #5c3030;
+  }
+}
+
