@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         RedirAddon - Chrome'dan Firefox'a Eklenti Yönlendirici
+// @name         RedirAddon - Chrome to Firefox Extension Redirector
 // @namespace    https://github.com/rediraddon
 // @version      1.0.0
-// @description  Chrome Web Store eklentilerini Firefox Add-ons üzerinde tek tıkla bulur ve yönlendirir.
+// @description  Find Chrome Web Store extensions on Firefox Add-ons with one click.
 // @author       RedirAddon
 // @match        https://chromewebstore.google.com/detail/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=mozilla.org
@@ -15,7 +15,7 @@
 (function () {
   'use strict';
 
-  // --- 1. ARAYÜZ STİLLERİ (GM_addStyle veya Dinamik <style>) ---
+  // --- 1. UI STYLES (GM_addStyle or dynamic <style>) ---
   const CSS_STYLES = `
     .rediraddon-wrapper {
       display: inline-flex;
@@ -146,7 +146,7 @@
     document.head.appendChild(styleElem);
   }
 
-  // --- 2. SABİTLER VE İKONLAR ---
+  // --- 2. CONSTANTS AND ICONS ---
   const FIREFOX_SVG = `
     <svg class="rediraddon-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-1.85.63-3.55 1.69-4.9.44.75 1.05 1.5 1.83 2.15.54.45 1.25.9 2.05 1.25-.3-.72-.47-1.5-.47-2.3 0-1.28.45-2.45 1.2-3.37.1.33.25.68.45 1.02.6 1.05 1.45 1.88 2.45 2.45.18.1.35.18.53.25-.25-.65-.38-1.35-.38-2.07 0-1.45.52-2.78 1.4-3.82 2.76 1.4 4.75 4.14 4.75 7.34 0 4.41-3.59 8-8 8z" fill="currentColor"/>
@@ -170,7 +170,7 @@
   let isSearching = false;
   const memoryCache = new Map();
 
-  // --- 3. YARDIMCI VE BENZERLİK FONKSİYONLARI ---
+  // --- 3. HELPER AND SIMILARITY FUNCTIONS ---
   function getExtensionIdFromUrl() {
     const match = window.location.pathname.match(/\/detail\/(?:[^/]+\/)?([a-z0-9]{32})/i);
     return match ? match[1] : null;
@@ -255,7 +255,7 @@
     return item.name['tr'] || item.name['en-US'] || item.name[item.default_locale] || Object.values(item.name)[0] || '';
   }
 
-  // --- 4. FIREFOX AMO API ÇAĞRISI (GM_xmlhttpRequest) ---
+  // --- 4. FIREFOX AMO API REQUEST (GM_xmlhttpRequest) ---
   function fetchAmoAddons(query) {
     return new Promise((resolve, reject) => {
       const cacheKey = query.toLowerCase();
@@ -291,7 +291,7 @@
           onerror: () => reject(new Error('Ağ bağlantı hatası oluştu.'))
         });
       } else {
-        // Standart fetch alternatifi
+        // Fall back to the built-in fetch API.
         fetch(endpoint)
           .then((r) => r.json())
           .then((data) => {
@@ -303,7 +303,7 @@
     });
   }
 
-  // --- 5. DOM VE BUTON OLUŞTURMA ---
+  // --- 5. DOM AND BUTTON CREATION ---
   function findTargetCTA() {
     const buttons = Array.from(document.querySelectorAll('button'));
     const cta = buttons.find((btn) => {
@@ -391,7 +391,7 @@
     }
   }
 
-  // --- 6. İŞ MANTIĞI VE NAVİGASYON ---
+  // --- 6. BUSINESS LOGIC AND NAVIGATION ---
   async function processPage(force = false) {
     const extId = getExtensionIdFromUrl();
     if (!extId) {
@@ -484,4 +484,3 @@
 
   initObserver();
 })();
-

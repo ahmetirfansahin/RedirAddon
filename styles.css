@@ -1,4 +1,4 @@
-/* RedirAddon - Chrome Web Store UI Stilleri */
+/* RedirAddon - Chrome Web Store UI styles */
 
 .rediraddon-wrapper {
   display: inline-flex;
@@ -32,7 +32,7 @@
   animation: rediraddon-fadein 0.3s cubic-bezier(0, 0, 0.2, 1);
 }
 
-/* 1. Yükleniyor Durumu */
+/* 1. Loading state */
 .rediraddon-btn--loading {
   background: #f1f3f4;
   color: #5f6368;
@@ -40,7 +40,7 @@
   cursor: wait;
 }
 
-/* 2. Bulundu Durumu (Firefox Marka Gradyanı) */
+/* 2. Found state (Firefox brand gradient) */
 .rediraddon-btn--found {
   background: linear-gradient(135deg, #ff7139 0%, #ff3b00 50%, #9013fe 100%);
   color: #ffffff;
@@ -59,7 +59,7 @@
   box-shadow: 0 2px 5px rgba(255, 59, 0, 0.3);
 }
 
-/* 3. Bulunamadı Durumu */
+/* 3. Not-found state */
 .rediraddon-btn--not-found {
   background: #f8f9fa;
   color: #70757a;
@@ -73,7 +73,7 @@
   border-color: #bdc1c6;
 }
 
-/* 4. Hata Durumu */
+/* 4. Error state */
 .rediraddon-btn--error {
   background: #fce8e6;
   color: #c5221f;
@@ -84,7 +84,7 @@
   background: #fad2cf;
 }
 
-/* İkonlar ve Animasyonlar */
+/* Icons and animations */
 .rediraddon-icon {
   flex-shrink: 0;
   display: inline-block;
@@ -112,7 +112,7 @@
   }
 }
 
-/* Koyu Tema (Dark Mode) Desteği */
+/* Dark mode support */
 @media (prefers-color-scheme: dark) {
   .rediraddon-btn--loading {
     background: #303134;
@@ -138,4 +138,3 @@
     border-color: #5c3030;
   }
 }
-

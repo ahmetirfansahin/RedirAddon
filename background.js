@@ -1,11 +1,11 @@
 /**
- * RedirAddon - Background Service Worker (Manifest V3)
- * Firefox Add-ons (AMO) API isteklerini yönetir ve CORS/CSP kısıtlamalarını aşar.
+ * RedirAddon - Background Script (Manifest V3)
+ * Handles Firefox Add-ons (AMO) API requests and avoids page-level CORS/CSP restrictions.
  */
 
-// Sonuçları hafızada tutarak gereksiz tekrarlı API isteklerini önleyen önbellek
+// Cache results in memory to avoid unnecessary repeated API requests.
 const apiCache = new Map();
-const CACHE_TTL_MS = 1000 * 60 * 15; // 15 dakika geçerlilik süresi
+const CACHE_TTL_MS = 1000 * 60 * 15; // Cache entries expire after 15 minutes.
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'SEARCH_AMO') {
@@ -13,15 +13,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       .then((data) => sendResponse({ success: true, data }))
       .catch((error) => sendResponse({ success: false, error: error.message }));
     
-    // Asenkron sendResponse için true dönülmelidir
+    // Return true to keep the message channel open for the asynchronous response.
     return true;
   }
 });
 
 /**
- * Firefox Add-ons v5 REST API üzerinde eklenti araması yapar.
- * @param {string} query Aranacak eklenti adı
- * @returns {Promise<Object>} API yanıtı ve eklenti listesi
+ * Searches for extensions using the Firefox Add-ons v5 REST API.
+ * @param {string} query Extension name to search for.
+ * @returns {Promise<Object>} API response containing the extension list.
  */
 async function handleAmoSearch(query) {
   const cleanQuery = (query || '').trim();
@@ -35,11 +35,11 @@ async function handleAmoSearch(query) {
     return cached.data;
   }
 
-  // AMO v5 Arama Uç Noktası
+  // AMO v5 search endpoint.
   const endpoint = `https://addons.mozilla.org/api/v5/addons/search/?q=${encodeURIComponent(cleanQuery)}&page_size=6&type=extension`;
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 sn timeout
+  const timeoutId = setTimeout(() => controller.abort(), 8000); // 8-second timeout.
 
   try {
     const response = await fetch(endpoint, {
@@ -58,7 +58,7 @@ async function handleAmoSearch(query) {
 
     const json = await response.json();
 
-    // Yanıtı önbelleğe kaydet
+    // Cache the response.
     apiCache.set(cacheKey, {
       timestamp: Date.now(),
       data: json
@@ -73,4 +73,3 @@ async function handleAmoSearch(query) {
     throw err;
   }
 }
-

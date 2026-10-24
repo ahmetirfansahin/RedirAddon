@@ -1,24 +1,24 @@
 /**
  * RedirAddon - Content Script (Manifest V3)
- * Chrome Web Store detay sayfalarını dinler, eklenti başlığını çeker,
- * Firefox AMO REST API üzerinden sorgular ve şık bir yönlendirme butonu ekler.
+ * Monitors Chrome Web Store detail pages, reads extension titles,
+ * searches the Firefox AMO REST API, and adds a redirect button.
  */
 
 (function () {
   'use strict';
 
-  // Aynı sayfada tekrar tekrar sorgu atmayı önlemek için aktif eklenti ID'si
+  // Active extension ID prevents repeated searches on the same page.
   let currentDetailId = null;
   let isSearching = false;
 
-  // Firefox marka SVG ikonu
+  // Firefox brand SVG icon.
   const FIREFOX_SVG = `
     <svg class="rediraddon-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-1.85.63-3.55 1.69-4.9.44.75 1.05 1.5 1.83 2.15.54.45 1.25.9 2.05 1.25-.3-.72-.47-1.5-.47-2.3 0-1.28.45-2.45 1.2-3.37.1.33.25.68.45 1.02.6 1.05 1.45 1.88 2.45 2.45.18.1.35.18.53.25-.25-.65-.38-1.35-.38-2.07 0-1.45.52-2.78 1.4-3.82 2.76 1.4 4.75 4.14 4.75 7.34 0 4.41-3.59 8-8 8z" fill="currentColor"/>
     </svg>
   `;
 
-  // Dönen yükleniyor animasyonu ikonu
+  // Spinning loading indicator icon.
   const SPINNER_SVG = `
     <svg class="rediraddon-spinner" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
       <line x1="12" y1="2" x2="12" y2="6"></line>
@@ -33,8 +33,8 @@
   `;
 
   /**
-   * URL'den Chrome Web Store eklenti kimliğini (ID) çıkarır.
-   * Format: /detail/[slug]/[id] veya /detail/[id] (32 karakter alfasayısal)
+   * Extracts the Chrome Web Store extension ID from the URL.
+   * Format: /detail/[slug]/[id] or /detail/[id] (32 alphanumeric characters).
    */
   function getExtensionIdFromUrl() {
     const match = window.location.pathname.match(/\/detail\/(?:[^/]+\/)?([a-z0-9]{32})/i);
@@ -42,22 +42,22 @@
   }
 
   /**
-   * DOM'dan eklenti adını güvenli bir şekilde çeker.
+   * Safely extracts the extension name from the DOM.
    */
   function extractExtensionTitle() {
-    // 1. Birincil yöntem: Ana sayfadaki h1 başlığı
+    // 1. Primary method: h1 heading on the main page.
     const h1 = document.querySelector('main h1') || document.querySelector('h1');
     if (h1 && h1.textContent.trim()) {
       return h1.textContent.trim();
     }
 
-    // 2. İkincil yöntem: Meta başlığı
+    // 2. Secondary method: Open Graph title.
     const ogTitle = document.querySelector('meta[property="og:title"]');
     if (ogTitle && ogTitle.content) {
       return ogTitle.content.replace(/\s*-\s*Chrome\s*(Web\s*Store|Web\s*Mağazası).*/i, '').trim();
     }
 
-    // 3. Üçüncül yöntem: document.title
+    // 3. Tertiary method: document.title.
     if (document.title) {
       return document.title.replace(/\s*-\s*Chrome\s*(Web\s*Store|Web\s*Mağazası).*/i, '').trim();
     }
@@ -66,8 +66,8 @@
   }
 
   /**
-   * Başlıktaki pazarlama sloganlarını ve ayraçları temizleyerek temel adı bulur.
-   * Örn: "Dark Reader - Her site için karanlık mod" -> "Dark Reader"
+   * Removes marketing taglines and separators from a title to find its base name.
+   * Example: "Dark Reader - dark mode for every website" -> "Dark Reader".
    */
   function cleanExtensionName(rawName) {
     if (!rawName) return '';
@@ -79,7 +79,7 @@
   }
 
   /**
-   * Metinleri benzerlik kontrolü için normalize eder.
+   * Normalizes text for similarity comparisons.
    */
   function normalizeText(text) {
     if (!text) return '';
@@ -91,8 +91,8 @@
   }
 
   /**
-   * İki dize arasındaki benzerlik oranını (0.0 - 1.0) hesaplar.
-   * Levenshtein ve token tabanlı Jaccard katsayısını harmanlar.
+   * Calculates the similarity score (0.0 - 1.0) between two strings.
+   * Combines Levenshtein distance with token-based Jaccard similarity.
    */
   function calculateSimilarity(str1, str2) {
     const s1 = normalizeText(str1);
@@ -101,12 +101,12 @@
     if (!s1 || !s2) return 0;
     if (s1 === s2) return 1.0;
 
-    // Biri diğerinin başlangıcı ise
+    // If one string is a prefix of the other.
     if (s1.startsWith(s2) || s2.startsWith(s1)) {
       return Math.min(s1.length, s2.length) / Math.max(s1.length, s2.length);
     }
 
-    // Levenshtein Mesafesi
+    // Levenshtein distance.
     const matrix = Array(s2.length + 1).fill(null).map(() => Array(s1.length + 1).fill(null));
     for (let i = 0; i <= s1.length; i++) matrix[0][i] = i;
     for (let j = 0; j <= s2.length; j++) matrix[j][0] = j;
@@ -126,7 +126,7 @@
     const maxLen = Math.max(s1.length, s2.length);
     const levSim = (maxLen - dist) / maxLen;
 
-    // Kelime kümesi (Jaccard)
+    // Token sets (Jaccard similarity).
     const t1 = new Set(str1.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(Boolean));
     const t2 = new Set(str2.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(Boolean));
     let inter = 0;
@@ -138,7 +138,7 @@
   }
 
   /**
-   * AMO API yanıtındaki nesneden başlık dizesini çıkarır.
+   * Extracts the title string from an item in the AMO API response.
    */
   function getAmoItemName(item) {
     if (!item || !item.name) return '';
@@ -147,12 +147,12 @@
   }
 
   /**
-   * Chrome Web Store'daki "Chrome'a Ekle" butonunu veya hedef konteyneri bulur.
+   * Finds the "Add to Chrome" button or its target container on the Chrome Web Store.
    */
   function findTargetCTA() {
     const buttons = Array.from(document.querySelectorAll('button'));
     
-    // Doğrudan buton metnini veya aria etiketini ara
+    // Search the button text or its ARIA label directly.
     const cta = buttons.find((btn) => {
       const text = (btn.textContent || '').trim().toLowerCase();
       const aria = (btn.getAttribute('aria-label') || '').toLowerCase();
@@ -168,7 +168,7 @@
 
     if (cta) return cta;
 
-    // Bulunamazsa başlığın bulunduğu bölümü hedefler
+    // If no button is found, target the section containing the heading.
     const h1 = document.querySelector('main h1') || document.querySelector('h1');
     if (h1) {
       return h1;
@@ -178,7 +178,7 @@
   }
 
   /**
-   * Buton UI konteynerini oluşturur veya günceller.
+   * Creates or retrieves the button's UI container.
    */
   function createOrGetContainer() {
     let container = document.getElementById('rediraddon-container');
@@ -191,7 +191,7 @@
   }
 
   /**
-   * Butonu belirtilen durumla DOM'a yerleştirir.
+   * Renders the button in the DOM with the specified state.
    */
   function renderButton(state, options = {}) {
     const targetElement = findTargetCTA();
@@ -199,7 +199,7 @@
 
     const container = createOrGetContainer();
     
-    // Buton şablonunu oluştur
+    // Build the button template.
     let btnHtml = '';
     let btnClass = 'rediraddon-btn';
     let btnTitle = '';
@@ -244,7 +244,7 @@
       btnElement.addEventListener('click', onClick);
     }
 
-    // Hedef elemanın yanına ekle
+    // Insert next to the target element.
     if (!container.parentElement) {
       if (targetElement.tagName.toLowerCase() === 'button') {
         targetElement.insertAdjacentElement('afterend', container);
@@ -255,7 +255,7 @@
   }
 
   /**
-   * Sayfayı analiz eder, başlığı alır ve Firefox AMO sorgusunu başlatır.
+   * Analyzes the page, reads its title, and starts a Firefox AMO search.
    */
   async function processPage(force = false) {
     const extId = getExtensionIdFromUrl();
@@ -267,7 +267,7 @@
     }
 
     if (!force && currentDetailId === extId && document.getElementById('rediraddon-container')) {
-      return; // Zaten mevcut eklenti için eklendi
+      return; // The button is already present for this extension.
     }
 
     if (isSearching) return;
@@ -282,7 +282,7 @@
     renderButton('loading');
 
     try {
-      // Arka plan servis çalışanına (background.js) mesaj gönder
+      // Send a message to the background script (background.js).
       const response = await chrome.runtime.sendMessage({
         action: 'SEARCH_AMO',
         query: cleanName
@@ -300,7 +300,7 @@
         const amoName = getAmoItemName(item);
         const amoCleanName = cleanExtensionName(amoName);
         
-        // Ham başlık ve temiz başlık üzerinden benzerlik ölçümü
+        // Compare similarity using both the original and cleaned titles.
         const sim1 = calculateSimilarity(cleanName, amoCleanName);
         const sim2 = calculateSimilarity(rawTitle, amoName);
         const simSlug = calculateSimilarity(cleanName, item.slug || '');
@@ -312,7 +312,7 @@
         }
       }
 
-      // Eşik değeri: 0.65 veya üzeri benzerlik eşleşme sayılır
+      // A similarity score of 0.65 or higher counts as a match.
       if (bestMatch && highestSimilarity >= 0.65) {
         renderButton('found', {
           addonName: getAmoItemName(bestMatch),
@@ -332,7 +332,7 @@
     }
   }
 
-  // Sayfa yükleme ve SPA navigasyon dinleyicisi
+  // Page load and SPA navigation listener.
   function initObserver() {
     let debounceTimer = null;
     const observer = new MutationObserver(() => {
@@ -352,7 +352,7 @@
       subtree: true
     });
 
-    // İlk çalıştırma
+    // Run once on initialization.
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => processPage());
     } else {
@@ -362,4 +362,3 @@
 
   initObserver();
 })();
-
