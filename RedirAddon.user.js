@@ -204,9 +204,19 @@
     if (!text) return '';
     return text
       .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]/g, '');
+      .normalize('NFKD')
+      .replace(/\u0131/g, 'i')
+      .replace(/\p{M}/gu, '')
+      .replace(/[^\p{L}\p{N}]/gu, '');
+  }
+
+  function getTokens(text) {
+    return text
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/\u0131/g, 'i')
+      .replace(/\p{M}/gu, '')
+      .match(/[\p{L}\p{N}]+/gu) || [];
   }
 
   function calculateSimilarity(str1, str2) {
@@ -239,8 +249,8 @@
     const maxLen = Math.max(s1.length, s2.length);
     const levSim = (maxLen - dist) / maxLen;
 
-    const t1 = new Set(str1.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(Boolean));
-    const t2 = new Set(str2.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(Boolean));
+    const t1 = new Set(getTokens(str1));
+    const t2 = new Set(getTokens(str2));
     let inter = 0;
     t1.forEach((t) => { if (t2.has(t)) inter++; });
     const union = new Set([...t1, ...t2]).size;
@@ -249,10 +259,10 @@
     return Math.max(levSim, jaccard);
   }
 
-  function getAmoItemName(item) {
-    if (!item || !item.name) return '';
-    if (typeof item.name === 'string') return item.name;
-    return item.name['en-US'] || item.name[item.default_locale] || Object.values(item.name)[0] || '';
+  function getAmoItemNames(item) {
+    if (!item || !item.name) return [];
+    if (typeof item.name === 'string') return [item.name];
+    return [...new Set(Object.values(item.name).filter((name) => typeof name === 'string' && name.trim()))];
   }
 
   // --- 4. FIREFOX AMO API REQUEST (GM_xmlhttpRequest) ---
@@ -271,7 +281,7 @@
           url: endpoint,
           headers: {
             'Accept': 'application/json',
-            'Accept-Language': 'en-US,en;q=0.9'
+            'Accept-Language': 'tr,en-US;q=0.9,en;q=0.8'
           },
           timeout: 8000,
           onload: (res) => {
@@ -418,26 +428,35 @@
       const data = await fetchAmoAddons(cleanName);
       const results = (data && data.results) || [];
       let bestMatch = null;
+      let bestMatchName = '';
       let highestSimilarity = 0;
 
       for (const item of results) {
-        const amoName = getAmoItemName(item);
-        const amoCleanName = cleanExtensionName(amoName);
-        
-        const sim1 = calculateSimilarity(cleanName, amoCleanName);
-        const sim2 = calculateSimilarity(rawTitle, amoName);
-        const simSlug = calculateSimilarity(cleanName, item.slug || '');
+        const amoNames = getAmoItemNames(item);
+        let matchingName = amoNames[0] || '';
+        let maxSim = calculateSimilarity(cleanName, item.slug || '');
 
-        const maxSim = Math.max(sim1, sim2, simSlug);
+        for (const amoName of amoNames) {
+          const sim = Math.max(
+            calculateSimilarity(cleanName, cleanExtensionName(amoName)),
+            calculateSimilarity(rawTitle, amoName)
+          );
+          if (sim > maxSim) {
+            maxSim = sim;
+            matchingName = amoName;
+          }
+        }
+
         if (maxSim > highestSimilarity) {
           highestSimilarity = maxSim;
           bestMatch = item;
+          bestMatchName = matchingName;
         }
       }
 
       if (bestMatch && highestSimilarity >= 0.65) {
         renderButton('found', {
-          addonName: getAmoItemName(bestMatch),
+          addonName: bestMatchName,
           url: bestMatch.url,
           users: bestMatch.average_daily_users ? bestMatch.average_daily_users.toLocaleString('en-US') : null,
           rating: bestMatch.ratings ? bestMatch.ratings.average : null
