@@ -61,10 +61,24 @@
     return name && name.toLowerCase() !== 'empty title' ? name : null;
   }
 
+  function extractExtensionTitle() {
+    const heading = document.querySelector('main h1') || document.querySelector('h1');
+    if (heading && heading.textContent.trim()) {
+      return heading.textContent.trim();
+    }
+
+    const openGraphTitle = document.querySelector('meta[property="og:title"]')?.content;
+    const title = openGraphTitle || document.title;
+    if (!title) return null;
+
+    const cleanedTitle = title.replace(/\s*-\s*Chrome\s*Web\s*Store.*$/i, '').trim();
+    return cleanedTitle && !/^chrome web store$/i.test(cleanedTitle) ? cleanedTitle : null;
+  }
+
   function getCurrentSearchKey() {
     const extensionId = getExtensionIdFromUrl();
-    const globalName = getGlobalExtensionNameFromUrl();
-    return extensionId && globalName ? `${extensionId}:${normalizeText(globalName)}` : null;
+    const name = getGlobalExtensionNameFromUrl() || cleanExtensionName(extractExtensionTitle() || '');
+    return extensionId && name ? `${extensionId}:${normalizeText(name)}` : null;
   }
 
   /**
@@ -253,7 +267,7 @@
 
     if (isSearching) return;
 
-    const globalName = getGlobalExtensionNameFromUrl();
+    const globalName = getGlobalExtensionNameFromUrl() || cleanExtensionName(extractExtensionTitle() || '');
     if (!globalName || !findTargetCTA()) return;
 
     currentSearchKey = searchKey;
@@ -320,7 +334,8 @@
 
     setInterval(() => {
       const searchKey = getCurrentSearchKey();
-      if (searchKey !== currentSearchKey || (searchKey && !document.getElementById('rediraddon-container'))) {
+      if (getExtensionIdFromUrl() &&
+          (!searchKey || searchKey !== currentSearchKey || !document.getElementById('rediraddon-container'))) {
         processPage();
       }
     }, 500);

@@ -7,7 +7,7 @@
 ## 🚀 Features
 
 1. **Smart title cleanup and matching**
-   - Uses the extension's canonical name from its Chrome Web Store URL, avoiding localized display names when searching AMO.
+   - Uses the canonical name from the Chrome Web Store URL when available and falls back to the page title while the store is still loading.
    - Removes marketing taglines from page titles (for example, `Dark Reader - dark mode for every website` becomes `Dark Reader`).
    - Links only when the canonical name exactly matches an English AMO name or slug, preventing unrelated results from being selected.
 2. **Resilient to dynamic SPAs and DOM changes**
