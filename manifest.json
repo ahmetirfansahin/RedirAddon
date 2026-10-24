@@ -19,7 +19,7 @@
     }
   },
   "background": {
-    "service_worker": "background.js"
+    "scripts": ["background.js"]
   },
   "host_permissions": [
     "https://chromewebstore.google.com/*",
@@ -40,4 +40,3 @@
     }
   ]
 }
-

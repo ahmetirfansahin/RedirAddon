@@ -1,63 +1,64 @@
 # RedirAddon 🦊
 
-**RedirAddon**, Chrome Web Store (`chromewebstore.google.com`) üzerinde bir eklenti incelenirken, aynı eklentinin Firefox Add-ons (`addons.mozilla.org` - AMO) mağazasında olup olmadığını otomatik sorgulayan ve varsa doğrudan yönlendirme butonu sunan modern bir tarayıcı geliştirme projesidir.
+**RedirAddon** automatically checks whether a browser extension viewed on the Chrome Web Store (`chromewebstore.google.com`) is also available on Firefox Add-ons (`addons.mozilla.org`, or AMO). If it finds a match, it provides a direct link to the Firefox listing.
 
 ---
 
-## 🚀 Özellikler
+## 🚀 Features
 
-1. **Akıllı Başlık Temizleme & Eşleştirme Motoru:**
-   - Eklenti başlığındaki pazarlama etiketlerini (örn. `Dark Reader - dark mode for every website` -> `Dark Reader`) ayıklar.
-   - Levenshtein mesafesi ve token tabanlı Jaccard katsayısını harmanlayarak yüksek doğrulukta benzerlik skoru hesaplar.
-2. **Dinamik SPA ve DOM Değişikliklerine Dayanıklılık:**
-   - Chrome Web Store'un Lit / Web Components tabanlı asenkron yapısına uygun `MutationObserver` ve URL izleme mimarisine sahiptir.
-   - Sayfa geçişlerinde (SPA) bellek sızıntısı olmadan eski durumu temizler ve yeni eklentiyi sorgular.
-3. **CORS ve CSP Kısıtlamalarına Karşı Güvenli:**
-   - **Eklenti Modunda (MV3):** `background.js` (Service Worker) üzerinden istek atarak sayfa içi CSP engellerini aşar ve 15 dakikalık akıllı önbellek (In-Memory Cache) kullanır.
-   - **Userscript Modunda:** `GM_xmlhttpRequest` ve `@connect addons.mozilla.org` ayrıcalıkları ile tam uyumlu çalışır.
-4. **Şık ve Uyumlu Arayüz:**
-   - Chrome Web Store'un Material 3 tasarım diline entegre pill-button tasarımı.
-   - Firefox marka renkleri, mikro animasyonlar (yükleniyor çarkı, hover efektleri) ve Koyu Tema (Dark Mode) desteği.
+1. **Smart title cleanup and matching**
+   - Removes marketing taglines from extension titles (for example, `Dark Reader - dark mode for every website` becomes `Dark Reader`).
+   - Combines Levenshtein distance and token-based Jaccard similarity to calculate a match score.
+2. **Resilient to dynamic SPAs and DOM changes**
+   - Uses `MutationObserver` and URL monitoring to handle the Chrome Web Store's asynchronous Lit / Web Components interface.
+   - Cleans up the previous state during SPA navigation before searching for the next extension.
+3. **Handles CORS and CSP restrictions**
+   - **Browser extension (Manifest V3):** Sends requests through `background.js` to avoid page-level CSP restrictions and uses an in-memory cache with a 15-minute lifetime.
+   - **Userscript:** Supports `GM_xmlhttpRequest` with the `@connect addons.mozilla.org` permission.
+4. **Polished, adaptive interface**
+   - Pill-button design that complements the Chrome Web Store's Material 3 styling.
+   - Firefox-inspired colors, subtle animations (including a loading spinner and hover effects), and dark mode support.
 
 ---
 
-## 📁 Proje Dosya Yapısı (FORMAT B)
+## 📁 Project structure (Format B)
 
 ```text
 RedirAddon/
-├── manifest.json         # Manifest V3 yapılandırması
-├── background.js        # AMO API isteklerini ve önbelleği yöneten servis çalışanı
-├── content.js           # Sayfa DOM'unu inceleyen ve butonu enjekte eden betik
-├── styles.css           # Modern buton ve durum stilleri (Dark mode uyumlu)
-├── popup.html           # Eklenti araç çubuğu popup arayüzü
-├── popup.css            # Popup stilleri
-├── RedirAddon.user.js   # FORMAT A: Tampermonkey Userscript versiyonu
-├── icons/               # 16x16, 48x48, 128x128 eklenti ikonları
-└── README.md            # Kurulum ve dokümantasyon
+├── manifest.json         # Manifest V3 configuration
+├── background.js         # Handles AMO API requests and caching
+├── content.js            # Inspects the page DOM and injects the button
+├── styles.css            # Button and status styles, including dark mode
+├── popup.html            # Extension toolbar popup
+├── popup.css             # Popup styles
+├── RedirAddon.user.js    # Format A: Tampermonkey userscript
+├── icons/                # Extension icons in 16x16, 48x48, and 128x128 sizes
+└── README.md             # Documentation and installation instructions
 ```
 
 ---
 
-## 🛠️ Kurulum Talimatları
+## 🛠️ Installation
 
-### FORMAT A: Tampermonkey / Violentmonkey (Userscript)
-1. Tarayıcınızda [Tampermonkey](https://www.tampermonkey.net/) veya [Violentmonkey](https://violentmonkey.github.io/) eklentisinin kurulu olduğundan emin olun.
-2. Eklenti simgesine tıklayıp **"Yeni Script Oluştur"** (Create a new script) seçeneğini seçin.
-3. `RedirAddon.user.js` dosyasının içeriğini kopyalayıp editöre yapıştırın ve **Kaydet (Ctrl+S)** yapın.
-4. Herhangi bir Chrome Web Store detay sayfasına gidin (örn. `https://chromewebstore.google.com/detail/ublock-origin/cjpalhdlnbpafiamejdnhcphjbkeiagm`). Buton otomatik olarak görünecektir.
+### Format A: Tampermonkey / Violentmonkey (userscript)
+1. Install [Tampermonkey](https://www.tampermonkey.net/) or [Violentmonkey](https://violentmonkey.github.io/) in your browser.
+2. Open the userscript manager and choose **Create a new script**.
+3. Copy the contents of `RedirAddon.user.js` into the editor and save with **Ctrl+S**.
+4. Visit a Chrome Web Store extension page (for example, `https://chromewebstore.google.com/detail/ublock-origin/cjpalhdlnbpafiamejdnhcphjbkeiagm`). The button will appear automatically.
 
-### FORMAT B: Tarayıcı Eklentisi (Manifest V3 - Unpacked)
-1. Chrome veya Chromium tabanlı bir tarayıcıda `chrome://extensions/` adresine gidin.
-2. Sağ üst köşedeki **"Geliştirici modu"** (Developer mode) anahtarını açın.
-3. Sol üstteki **"Paketlenmemiş öğe yükle"** (Load unpacked) butonuna tıklayın.
-4. Bu klasörü (`RedirAddon`) seçin.
-5. Eklenti başarıyla yüklenecektir!
+### Format B: Firefox-based browser extension (Manifest V3)
+1. In Firefox, open `about:debugging#/runtime/this-firefox`.
+2. Select **This Firefox**.
+3. Click **Load Temporary Add-on...**.
+4. Select the project's `manifest.json` file.
+5. The extension will be loaded and can be used on Chrome Web Store pages.
+
+> Extensions loaded temporarily in Firefox are removed when the browser restarts. For a permanent installation, the extension must be published on AMO. Installation steps and menu names may differ in other Firefox-based browsers.
 
 ---
 
-## 🔍 API & Benzerlik Eşleştirme Mantığı
+## 🔍 API and matching details
 
-- **AMO Endpoint:** `https://addons.mozilla.org/api/v5/addons/search/?q={QUERY}&page_size=6&type=extension`
-- **Benzerlik Eşiği:** `0.65` ve üzeri eşleşmelerde buton doğrudan eklenti sayfasına bağlantı verir.
-- **Bulunamadı Durumu:** Doğrudan eşleşme bulunamazsa kullanıcıyı AMO'nun ilgili arama sayfasına yönlendiren akıllı yedek mekanizma çalışır.
-
+- **AMO endpoint:** `https://addons.mozilla.org/api/v5/addons/search/?q={QUERY}&page_size=6&type=extension`
+- **Match threshold:** Scores of `0.65` or higher link directly to the Firefox extension page.
+- **No direct match:** If no sufficiently close match is found, a fallback link takes the user to the relevant AMO search results.
