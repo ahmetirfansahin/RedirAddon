@@ -26,7 +26,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 async function handleAmoSearch(query) {
   const cleanQuery = (query || '').trim();
   if (!cleanQuery) {
-    throw new Error('Arama sorgusu boş olamaz.');
+    throw new Error('Search query cannot be empty.');
   }
 
   const cacheKey = cleanQuery.toLowerCase();
@@ -46,14 +46,14 @@ async function handleAmoSearch(query) {
       signal: controller.signal,
       headers: {
         'Accept': 'application/json',
-        'Accept-Language': 'tr,en-US;q=0.9,en;q=0.8'
+        'Accept-Language': 'en-US,en;q=0.9'
       }
     });
 
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      throw new Error(`AMO API Hatası: HTTP ${response.status}`);
+      throw new Error(`AMO API error: HTTP ${response.status}`);
     }
 
     const json = await response.json();
@@ -68,7 +68,7 @@ async function handleAmoSearch(query) {
   } catch (err) {
     clearTimeout(timeoutId);
     if (err.name === 'AbortError') {
-      throw new Error('İstek zaman aşımına uğradı (8s).');
+      throw new Error('The request timed out (8s).');
     }
     throw err;
   }

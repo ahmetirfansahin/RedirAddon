@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "RedirAddon",
   "version": "1.0.0",
-  "description": "Chrome Web Store eklentilerini Firefox Add-ons (AMO) üzerinde tek tıkla bulur ve yönlendirir.",
+  "description": "Find Chrome Web Store extensions on Firefox Add-ons (AMO) and open matching listings with one click.",
   "author": "RedirAddon Team",
   "icons": {
     "16": "icons/icon16.png",
@@ -11,7 +11,7 @@
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "RedirAddon - Firefox Eklenti Yönlendirici",
+    "default_title": "RedirAddon - Firefox Extension Redirector",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",

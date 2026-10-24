@@ -54,12 +54,12 @@
     // 2. Secondary method: Open Graph title.
     const ogTitle = document.querySelector('meta[property="og:title"]');
     if (ogTitle && ogTitle.content) {
-      return ogTitle.content.replace(/\s*-\s*Chrome\s*(Web\s*Store|Web\s*Mağazası).*/i, '').trim();
+      return ogTitle.content.replace(/\s*-\s*Chrome\s*Web\s*Store.*/i, '').trim();
     }
 
     // 3. Tertiary method: document.title.
     if (document.title) {
-      return document.title.replace(/\s*-\s*Chrome\s*(Web\s*Store|Web\s*Mağazası).*/i, '').trim();
+      return document.title.replace(/\s*-\s*Chrome\s*Web\s*Store.*/i, '').trim();
     }
 
     return null;
@@ -143,7 +143,7 @@
   function getAmoItemName(item) {
     if (!item || !item.name) return '';
     if (typeof item.name === 'string') return item.name;
-    return item.name['tr'] || item.name['en-US'] || item.name[item.default_locale] || Object.values(item.name)[0] || '';
+    return item.name['en-US'] || item.name[item.default_locale] || Object.values(item.name)[0] || '';
   }
 
   /**
@@ -157,12 +157,10 @@
       const text = (btn.textContent || '').trim().toLowerCase();
       const aria = (btn.getAttribute('aria-label') || '').toLowerCase();
       return (
-        text.includes("chrome'a ekle") ||
         text.includes("add to chrome") ||
-        text.includes("chrome'dan kaldır") ||
         text.includes("remove from chrome") ||
         aria.includes("add to chrome") ||
-        aria.includes("chrome'a ekle")
+        aria.includes("remove from chrome")
       );
     });
 
@@ -208,28 +206,28 @@
     switch (state) {
       case 'loading':
         btnClass += ' rediraddon-btn--loading';
-        btnHtml = `${SPINNER_SVG} <span>Firefox'ta Aranıyor...</span>`;
-        btnTitle = 'Mozilla Add-ons mağazasında sorgulanıyor...';
+        btnHtml = `${SPINNER_SVG} <span>Searching Firefox...</span>`;
+        btnTitle = 'Searching Mozilla Add-ons...';
         break;
 
       case 'found':
         btnClass += ' rediraddon-btn--found';
-        btnHtml = `${FIREFOX_SVG} <span>Firefox'ta Bul ↗</span>`;
-        btnTitle = `Firefox Add-ons: "${options.addonName}"\nKullanıcı: ${options.users || 'Bilinmiyor'} | Puan: ${options.rating ? options.rating.toFixed(1) + ' ★' : '-'}\nFirefox sayfasına gitmek için tıklayın.`;
+        btnHtml = `${FIREFOX_SVG} <span>Find on Firefox ↗</span>`;
+        btnTitle = `Firefox Add-ons: "${options.addonName}"\nUsers: ${options.users || 'Unknown'} | Rating: ${options.rating ? options.rating.toFixed(1) + ' ★' : '-'}\nClick to open the Firefox listing.`;
         onClick = () => window.open(options.url, '_blank', 'noopener,noreferrer');
         break;
 
       case 'not_found':
         btnClass += ' rediraddon-btn--not-found';
-        btnHtml = `${FIREFOX_SVG} <span>Firefox'ta Bulunamadı</span>`;
-        btnTitle = 'Bu eklenti Firefox Add-ons mağazasında tam olarak bulunamadı. Tıklayarak mağazada manuel arama yapabilirsiniz.';
+        btnHtml = `${FIREFOX_SVG} <span>Not found on Firefox</span>`;
+        btnTitle = 'No exact match was found on Firefox Add-ons. Click to search the store manually.';
         onClick = () => window.open(options.searchFallbackUrl, '_blank', 'noopener,noreferrer');
         break;
 
       case 'error':
         btnClass += ' rediraddon-btn--error';
-        btnHtml = `${FIREFOX_SVG} <span>Sorgu Hatası (Tekrar Dene)</span>`;
-        btnTitle = options.error || 'Bağlantı hatası oluştu. Tekrar denemek için tıklayın.';
+        btnHtml = `${FIREFOX_SVG} <span>Search failed (Retry)</span>`;
+        btnTitle = options.error || 'A connection error occurred. Click to try again.';
         onClick = () => {
           container.remove();
           processPage(true);
@@ -283,13 +281,13 @@
 
     try {
       // Send a message to the background script (background.js).
-      const response = await chrome.runtime.sendMessage({
+      const response = await browser.runtime.sendMessage({
         action: 'SEARCH_AMO',
         query: cleanName
       });
 
       if (!response || !response.success) {
-        throw new Error(response ? response.error : 'Arka plan ile bağlantı kurulamadı.');
+        throw new Error(response ? response.error : 'Could not connect to the background script.');
       }
 
       const results = (response.data && response.data.results) || [];
@@ -317,15 +315,15 @@
         renderButton('found', {
           addonName: getAmoItemName(bestMatch),
           url: bestMatch.url,
-          users: bestMatch.average_daily_users ? bestMatch.average_daily_users.toLocaleString('tr-TR') : null,
+          users: bestMatch.average_daily_users ? bestMatch.average_daily_users.toLocaleString('en-US') : null,
           rating: bestMatch.ratings ? bestMatch.ratings.average : null
         });
       } else {
-        const searchFallbackUrl = `https://addons.mozilla.org/tr/firefox/search/?q=${encodeURIComponent(cleanName)}`;
+        const searchFallbackUrl = `https://addons.mozilla.org/en-US/firefox/search/?q=${encodeURIComponent(cleanName)}`;
         renderButton('not_found', { searchFallbackUrl });
       }
     } catch (err) {
-      console.warn('[RedirAddon] AMO Arama Hatası:', err);
+      console.warn('[RedirAddon] AMO search error:', err);
       renderButton('error', { error: err.message });
     } finally {
       isSearching = false;
