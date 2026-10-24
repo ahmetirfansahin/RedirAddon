@@ -176,6 +176,26 @@
     return match ? match[1] : null;
   }
 
+  // The Chrome Web Store URL slug uses the extension's canonical, non-localized name.
+  function getGlobalExtensionNameFromUrl() {
+    const match = window.location.pathname.match(/\/detail\/([^/]+)\/[a-z0-9]{32}/i);
+    if (!match) return null;
+
+    let slug;
+    try {
+      slug = decodeURIComponent(match[1]);
+    } catch {
+      slug = match[1];
+    }
+
+    const name = slug
+      .replace(/[™®©]/g, '')
+      .replace(/[-_]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return name && name.toLowerCase() !== 'empty title' ? name : null;
+  }
+
   function extractExtensionTitle() {
     const h1 = document.querySelector('main h1') || document.querySelector('h1');
     if (h1 && h1.textContent.trim()) {
@@ -281,7 +301,7 @@
           url: endpoint,
           headers: {
             'Accept': 'application/json',
-            'Accept-Language': 'tr,en-US;q=0.9,en;q=0.8'
+            'Accept-Language': 'en-US,en;q=0.9'
           },
           timeout: 8000,
           onload: (res) => {
@@ -422,10 +442,11 @@
     isSearching = true;
 
     const cleanName = cleanExtensionName(rawTitle);
+    const globalName = getGlobalExtensionNameFromUrl() || cleanName;
     renderButton('loading');
 
     try {
-      const data = await fetchAmoAddons(cleanName);
+      const data = await fetchAmoAddons(globalName);
       const results = (data && data.results) || [];
       let bestMatch = null;
       let bestMatchName = '';
@@ -434,10 +455,15 @@
       for (const item of results) {
         const amoNames = getAmoItemNames(item);
         let matchingName = amoNames[0] || '';
-        let maxSim = calculateSimilarity(cleanName, item.slug || '');
+        let maxSim = Math.max(
+          calculateSimilarity(globalName, item.slug || ''),
+          calculateSimilarity(cleanName, item.slug || '')
+        );
 
         for (const amoName of amoNames) {
           const sim = Math.max(
+            calculateSimilarity(globalName, cleanExtensionName(amoName)),
+            calculateSimilarity(globalName, amoName),
             calculateSimilarity(cleanName, cleanExtensionName(amoName)),
             calculateSimilarity(rawTitle, amoName)
           );
@@ -462,7 +488,7 @@
           rating: bestMatch.ratings ? bestMatch.ratings.average : null
         });
       } else {
-        const searchFallbackUrl = `https://addons.mozilla.org/en-US/firefox/search/?q=${encodeURIComponent(cleanName)}`;
+        const searchFallbackUrl = `https://addons.mozilla.org/en-US/firefox/search/?q=${encodeURIComponent(globalName)}`;
         renderButton('not_found', { searchFallbackUrl });
       }
     } catch (err) {

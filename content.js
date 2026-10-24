@@ -41,6 +41,26 @@
     return match ? match[1] : null;
   }
 
+  // The Chrome Web Store URL slug uses the extension's canonical, non-localized name.
+  function getGlobalExtensionNameFromUrl() {
+    const match = window.location.pathname.match(/\/detail\/([^/]+)\/[a-z0-9]{32}/i);
+    if (!match) return null;
+
+    let slug;
+    try {
+      slug = decodeURIComponent(match[1]);
+    } catch {
+      slug = match[1];
+    }
+
+    const name = slug
+      .replace(/[™®©]/g, '')
+      .replace(/[-_]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return name && name.toLowerCase() !== 'empty title' ? name : null;
+  }
+
   /**
    * Safely extracts the extension name from the DOM.
    */
@@ -287,13 +307,14 @@
     isSearching = true;
 
     const cleanName = cleanExtensionName(rawTitle);
+    const globalName = getGlobalExtensionNameFromUrl() || cleanName;
     renderButton('loading');
 
     try {
       // Send a message to the background script (background.js).
       const response = await browser.runtime.sendMessage({
         action: 'SEARCH_AMO',
-        query: cleanName
+        query: globalName
       });
 
       if (!response || !response.success) {
@@ -308,11 +329,16 @@
       for (const item of results) {
         const amoNames = getAmoItemNames(item);
         let matchingName = amoNames[0] || '';
-        let maxSim = calculateSimilarity(cleanName, item.slug || '');
+        let maxSim = Math.max(
+          calculateSimilarity(globalName, item.slug || ''),
+          calculateSimilarity(cleanName, item.slug || '')
+        );
 
         // Compare against every localized AMO name, not only the English name.
         for (const amoName of amoNames) {
           const sim = Math.max(
+            calculateSimilarity(globalName, cleanExtensionName(amoName)),
+            calculateSimilarity(globalName, amoName),
             calculateSimilarity(cleanName, cleanExtensionName(amoName)),
             calculateSimilarity(rawTitle, amoName)
           );
@@ -338,7 +364,7 @@
           rating: bestMatch.ratings ? bestMatch.ratings.average : null
         });
       } else {
-        const searchFallbackUrl = `https://addons.mozilla.org/en-US/firefox/search/?q=${encodeURIComponent(cleanName)}`;
+        const searchFallbackUrl = `https://addons.mozilla.org/en-US/firefox/search/?q=${encodeURIComponent(globalName)}`;
         renderButton('not_found', { searchFallbackUrl });
       }
     } catch (err) {

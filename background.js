@@ -46,7 +46,7 @@ async function handleAmoSearch(query) {
       signal: controller.signal,
       headers: {
         'Accept': 'application/json',
-        'Accept-Language': 'tr,en-US;q=0.9,en;q=0.8'
+        'Accept-Language': 'en-US,en;q=0.9'
       }
     });
 
