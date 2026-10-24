@@ -10,6 +10,8 @@
   // Active extension ID prevents repeated searches on the same page.
   let currentSearchKey = null;
   let isSearching = false;
+  let pendingReloadId = null;
+  let pendingReloadTimer = null;
 
   // Firefox brand SVG icon.
   const FIREFOX_SVG = `
@@ -86,14 +88,47 @@
     const storageKey = 'rediraddon:reloaded-extension';
     try {
       if (!extensionId) {
+        if (pendingReloadTimer) {
+          clearTimeout(pendingReloadTimer);
+          pendingReloadTimer = null;
+        }
+        pendingReloadId = null;
         sessionStorage.removeItem(storageKey);
         return false;
+      }
+
+      if (pendingReloadId === extensionId) return true;
+
+      if (pendingReloadId && pendingReloadId !== extensionId) {
+        if (pendingReloadTimer) clearTimeout(pendingReloadTimer);
+        pendingReloadTimer = null;
+        pendingReloadId = null;
       }
 
       if (sessionStorage.getItem(storageKey) === extensionId) return false;
 
       sessionStorage.setItem(storageKey, extensionId);
-      window.location.reload();
+      pendingReloadId = extensionId;
+
+      const reloadAfterPageLoad = () => {
+        pendingReloadTimer = setTimeout(() => {
+          if (getExtensionIdFromUrl() !== extensionId) {
+            pendingReloadId = null;
+            pendingReloadTimer = null;
+            return;
+          }
+
+          pendingReloadId = null;
+          pendingReloadTimer = null;
+          window.location.reload();
+        }, 1000);
+      };
+
+      if (document.readyState === 'complete') {
+        reloadAfterPageLoad();
+      } else {
+        window.addEventListener('load', reloadAfterPageLoad, { once: true });
+      }
       return true;
     } catch (error) {
       console.warn('[RedirAddon] Could not prepare the one-time page reload:', error);
