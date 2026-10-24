@@ -8,7 +8,7 @@
   'use strict';
 
   // Active extension ID prevents repeated searches on the same page.
-  let currentDetailId = null;
+  let currentSearchKey = null;
   let isSearching = false;
 
   // Firefox brand SVG icon.
@@ -61,28 +61,10 @@
     return name && name.toLowerCase() !== 'empty title' ? name : null;
   }
 
-  /**
-   * Safely extracts the extension name from the DOM.
-   */
-  function extractExtensionTitle() {
-    // 1. Primary method: h1 heading on the main page.
-    const h1 = document.querySelector('main h1') || document.querySelector('h1');
-    if (h1 && h1.textContent.trim()) {
-      return h1.textContent.trim();
-    }
-
-    // 2. Secondary method: Open Graph title.
-    const ogTitle = document.querySelector('meta[property="og:title"]');
-    if (ogTitle && ogTitle.content) {
-      return ogTitle.content.replace(/\s*-\s*Chrome\s*Web\s*Store.*/i, '').trim();
-    }
-
-    // 3. Tertiary method: document.title.
-    if (document.title) {
-      return document.title.replace(/\s*-\s*Chrome\s*Web\s*Store.*/i, '').trim();
-    }
-
-    return null;
+  function getCurrentSearchKey() {
+    const extensionId = getExtensionIdFromUrl();
+    const globalName = getGlobalExtensionNameFromUrl();
+    return extensionId && globalName ? `${extensionId}:${normalizeText(globalName)}` : null;
   }
 
   /**
@@ -258,26 +240,25 @@
     if (!extId) {
       const existing = document.getElementById('rediraddon-container');
       if (existing) existing.remove();
-      currentDetailId = null;
+      currentSearchKey = null;
       return;
     }
 
-    if (!force && currentDetailId === extId && document.getElementById('rediraddon-container')) {
+    const searchKey = getCurrentSearchKey();
+    if (!searchKey) return;
+
+    if (!force && currentSearchKey === searchKey && document.getElementById('rediraddon-container')) {
       return; // The button is already present for this extension.
     }
 
     if (isSearching) return;
 
-    if (!findTargetCTA()) return;
+    const globalName = getGlobalExtensionNameFromUrl();
+    if (!globalName || !findTargetCTA()) return;
 
-    const rawTitle = extractExtensionTitle();
-    if (!rawTitle) return;
-
-    currentDetailId = extId;
+    currentSearchKey = searchKey;
     isSearching = true;
 
-    const cleanName = cleanExtensionName(rawTitle);
-    const globalName = getGlobalExtensionNameFromUrl() || cleanName;
     renderButton('loading');
 
     try {
@@ -290,6 +271,8 @@
       if (!response || !response.success) {
         throw new Error(response ? response.error : 'Could not connect to the background script.');
       }
+
+      if (getCurrentSearchKey() !== searchKey) return;
 
       const results = (response.data && response.data.results) || [];
       const match = findExactAmoMatch(results, globalName);
@@ -307,11 +290,13 @@
       }
     } catch (err) {
       console.warn('[RedirAddon] AMO search error:', err);
-      renderButton('error', { error: err.message });
+      if (getCurrentSearchKey() === searchKey) {
+        renderButton('error', { error: err.message });
+      }
     } finally {
       isSearching = false;
-      const currentId = getExtensionIdFromUrl();
-      if (currentId && (currentId !== extId || !document.getElementById('rediraddon-container'))) {
+      if (getCurrentSearchKey() !== currentSearchKey ||
+          (getCurrentSearchKey() && !document.getElementById('rediraddon-container'))) {
         setTimeout(() => processPage(), 0);
       }
     }
@@ -323,19 +308,22 @@
     const observer = new MutationObserver(() => {
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
-        const extId = getExtensionIdFromUrl();
-        if (extId && extId !== currentDetailId) {
-          processPage();
-        } else if (extId && !document.getElementById('rediraddon-container')) {
-          processPage();
-        }
+        processPage();
       }, 250);
     });
 
-    observer.observe(document.body || document.documentElement, {
+    observer.observe(document.documentElement, {
       childList: true,
-      subtree: true
+      subtree: true,
+      characterData: true
     });
+
+    setInterval(() => {
+      const searchKey = getCurrentSearchKey();
+      if (searchKey !== currentSearchKey || (searchKey && !document.getElementById('rediraddon-container'))) {
+        processPage();
+      }
+    }, 500);
 
     // Run once on initialization.
     if (document.readyState === 'loading') {
