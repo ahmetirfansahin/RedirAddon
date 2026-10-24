@@ -111,69 +111,37 @@
       .replace(/[^\p{L}\p{N}]/gu, '');
   }
 
-  function getTokens(text) {
-    return text
-      .toLowerCase()
-      .normalize('NFKD')
-      .replace(/\u0131/g, 'i')
-      .replace(/\p{M}/gu, '')
-      .match(/[\p{L}\p{N}]+/gu) || [];
-  }
-
   /**
-   * Calculates the similarity score (0.0 - 1.0) between two strings.
-   * Combines Levenshtein distance with token-based Jaccard similarity.
-   */
-  function calculateSimilarity(str1, str2) {
-    const s1 = normalizeText(str1);
-    const s2 = normalizeText(str2);
-
-    if (!s1 || !s2) return 0;
-    if (s1 === s2) return 1.0;
-
-    // If one string is a prefix of the other.
-    if (s1.startsWith(s2) || s2.startsWith(s1)) {
-      return Math.min(s1.length, s2.length) / Math.max(s1.length, s2.length);
-    }
-
-    // Levenshtein distance.
-    const matrix = Array(s2.length + 1).fill(null).map(() => Array(s1.length + 1).fill(null));
-    for (let i = 0; i <= s1.length; i++) matrix[0][i] = i;
-    for (let j = 0; j <= s2.length; j++) matrix[j][0] = j;
-
-    for (let j = 1; j <= s2.length; j++) {
-      for (let i = 1; i <= s1.length; i++) {
-        const cost = s1[i - 1] === s2[j - 1] ? 0 : 1;
-        matrix[j][i] = Math.min(
-          matrix[j][i - 1] + 1,
-          matrix[j - 1][i] + 1,
-          matrix[j - 1][i - 1] + cost
-        );
-      }
-    }
-
-    const dist = matrix[s2.length][s1.length];
-    const maxLen = Math.max(s1.length, s2.length);
-    const levSim = (maxLen - dist) / maxLen;
-
-    // Token sets (Jaccard similarity).
-    const t1 = new Set(getTokens(str1));
-    const t2 = new Set(getTokens(str2));
-    let inter = 0;
-    t1.forEach((t) => { if (t2.has(t)) inter++; });
-    const union = new Set([...t1, ...t2]).size;
-    const jaccard = union > 0 ? inter / union : 0;
-
-    return Math.max(levSim, jaccard);
-  }
-
-  /**
-   * Extracts the title string from an item in the AMO API response.
+   * Returns English names from an item in the AMO API response.
    */
   function getAmoItemNames(item) {
     if (!item || !item.name) return [];
     if (typeof item.name === 'string') return [item.name];
-    return [...new Set(Object.values(item.name).filter((name) => typeof name === 'string' && name.trim()))];
+    return Object.entries(item.name)
+      .filter(([locale, name]) => /^en(?:[-_]|$)/i.test(locale) && typeof name === 'string' && name.trim())
+      .map(([, name]) => name);
+  }
+
+  function findExactAmoMatch(items, globalName) {
+    const normalizedGlobalName = normalizeText(globalName);
+    if (!normalizedGlobalName) return null;
+
+    for (const item of items) {
+      const names = getAmoItemNames(item);
+      const matchingName = names.find(
+        (name) => normalizeText(cleanExtensionName(name)) === normalizedGlobalName
+      );
+      const exactSlugMatch = normalizeText(item.slug || '') === normalizedGlobalName;
+
+      if (matchingName || exactSlugMatch) {
+        return {
+          item,
+          name: matchingName || names[0] || item.slug
+        };
+      }
+    }
+
+    return null;
   }
 
   /**
@@ -300,6 +268,8 @@
 
     if (isSearching) return;
 
+    if (!findTargetCTA()) return;
+
     const rawTitle = extractExtensionTitle();
     if (!rawTitle) return;
 
@@ -322,46 +292,14 @@
       }
 
       const results = (response.data && response.data.results) || [];
-      let bestMatch = null;
-      let bestMatchName = '';
-      let highestSimilarity = 0;
+      const match = findExactAmoMatch(results, globalName);
 
-      for (const item of results) {
-        const amoNames = getAmoItemNames(item);
-        let matchingName = amoNames[0] || '';
-        let maxSim = Math.max(
-          calculateSimilarity(globalName, item.slug || ''),
-          calculateSimilarity(cleanName, item.slug || '')
-        );
-
-        // Compare against every localized AMO name, not only the English name.
-        for (const amoName of amoNames) {
-          const sim = Math.max(
-            calculateSimilarity(globalName, cleanExtensionName(amoName)),
-            calculateSimilarity(globalName, amoName),
-            calculateSimilarity(cleanName, cleanExtensionName(amoName)),
-            calculateSimilarity(rawTitle, amoName)
-          );
-          if (sim > maxSim) {
-            maxSim = sim;
-            matchingName = amoName;
-          }
-        }
-
-        if (maxSim > highestSimilarity) {
-          highestSimilarity = maxSim;
-          bestMatch = item;
-          bestMatchName = matchingName;
-        }
-      }
-
-      // A similarity score of 0.65 or higher counts as a match.
-      if (bestMatch && highestSimilarity >= 0.65) {
+      if (match) {
         renderButton('found', {
-          addonName: bestMatchName,
-          url: bestMatch.url,
-          users: bestMatch.average_daily_users ? bestMatch.average_daily_users.toLocaleString('en-US') : null,
-          rating: bestMatch.ratings ? bestMatch.ratings.average : null
+          addonName: match.name,
+          url: match.item.url,
+          users: match.item.average_daily_users ? match.item.average_daily_users.toLocaleString('en-US') : null,
+          rating: match.item.ratings ? match.item.ratings.average : null
         });
       } else {
         const searchFallbackUrl = `https://addons.mozilla.org/en-US/firefox/search/?q=${encodeURIComponent(globalName)}`;
@@ -372,6 +310,10 @@
       renderButton('error', { error: err.message });
     } finally {
       isSearching = false;
+      const currentId = getExtensionIdFromUrl();
+      if (currentId && (currentId !== extId || !document.getElementById('rediraddon-container'))) {
+        setTimeout(() => processPage(), 0);
+      }
     }
   }
 

@@ -9,7 +9,7 @@
 1. **Smart title cleanup and matching**
    - Uses the extension's canonical name from its Chrome Web Store URL, avoiding localized display names when searching AMO.
    - Removes marketing taglines from page titles (for example, `Dark Reader - dark mode for every website` becomes `Dark Reader`).
-   - Combines Levenshtein distance and token-based Jaccard similarity to calculate a match score.
+   - Links only when the canonical name exactly matches an English AMO name or slug, preventing unrelated results from being selected.
 2. **Resilient to dynamic SPAs and DOM changes**
    - Uses `MutationObserver` and URL monitoring to handle the Chrome Web Store's asynchronous Lit / Web Components interface.
    - Cleans up the previous state during SPA navigation before searching for the next extension.
@@ -53,5 +53,5 @@ RedirAddon/
 ## 🔍 API and matching details
 
 - **AMO endpoint:** `https://addons.mozilla.org/api/v5/addons/search/?q={QUERY}&page_size=6&type=extension`
-- **Match threshold:** Scores of `0.65` or higher link directly to the Firefox extension page.
-- **No direct match:** If no sufficiently close match is found, a fallback link takes the user to the relevant AMO search results.
+- **Match rule:** A direct link is shown only when the Chrome Web Store's canonical name exactly matches an English AMO name or slug.
+- **No exact match:** A fallback link takes the user to AMO search results for the canonical name.
