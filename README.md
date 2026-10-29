@@ -40,14 +40,7 @@ RedirAddon/
 
 ## 🛠️ Installation
 
-### Firefox-based browser extension (Manifest V3)
-1. In Firefox, open `about:debugging#/runtime/this-firefox`.
-2. Select **This Firefox**.
-3. Click **Load Temporary Add-on...**.
-4. Select the project's `manifest.json` file.
-5. The extension will be loaded and can be used on Chrome Web Store pages.
-
-> Extensions loaded temporarily in Firefox are removed when the browser restarts. For a permanent installation, the extension must be published on AMO. Installation steps and menu names may differ in other Firefox-based browsers.
+[Install RedirAddon from Firefox Add-ons](https://addons.mozilla.org/tr/firefox/addon/rediraddon/).
 
 ---
 
